@@ -27,6 +27,7 @@ pub struct SpriteAnimator {
     /// Stored here for convenience so I can flip sprites if necessary.
     pub direction: Dir2,
     pub animation_index: AnimationIndex,
+    pub next_animation_index: Option<(AnimationIndex, usize)>,
     pub animations: Vec<SpriteAnimation>,
 }
 impl SpriteAnimator {
@@ -34,6 +35,7 @@ impl SpriteAnimator {
         Self {
             direction: Dir2::X,
             animation_index: AnimationIndex::Idle,
+            next_animation_index: None,
             animations,
         }
     }
@@ -50,6 +52,9 @@ impl SpriteAnimator {
         if let Some(animation) = self.get_animation() {
             animation.tick(delta);
         }
+    }
+    pub fn set_animation_index_deferred(&mut self, index: AnimationIndex) {
+        self.animation_index = index;
     }
 }
 

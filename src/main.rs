@@ -31,7 +31,7 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(
             FixedUpdate,
-            (sprite_movement, animate_walk, tick_animations),
+            (sprite_movement, animate_walk, tick_animations).chain(),
         )
         .add_systems(Update, (camera_control, handle_click))
         .add_observer(testevent)
@@ -90,9 +90,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ));
     commands.spawn((
         Sprite {
-            anchor: Anchor(Vec2::new(0.0, -0.5)),
+            // anchor: Anchor(Vec2::new(0.0, -0.5)),
             ..default()
         },
+        Anchor(Vec2::new(0.0, -0.5)),
         Transform::from_xyz(0., -30., 1.),
         NavigationDestination(Some(Vec2::new(30., -70.))),
         SpriteAnimator::new(vec![
@@ -145,11 +146,12 @@ fn sprite_movement(
     for (mut transform, mut target) in &mut sprite_position {
         if let Some(dest) = target.0 {
             let current = transform.translation.truncate();
-            let dir = current.move_towards(dest, 75. * time.delta_secs());
-            transform.translation.x = dir.x;
-            transform.translation.y = dir.y;
-            if transform.translation.truncate().distance_squared(dest) < 0.01 {
+            if transform.translation.truncate().distance_squared(dest) < 1.0 {
                 target.0 = None;
+            } else {
+                let dir = current.move_towards(dest, 75. * time.delta_secs());
+                transform.translation.x = dir.x;
+                transform.translation.y = dir.y;
             }
         }
     }
@@ -162,10 +164,10 @@ fn animate_walk(
     for (transform, target, mut animator) in &mut sprite_position {
         if let Some(dest) = target.0 {
             let dir = (dest - transform.translation.truncate()).normalize_or_zero();
-            animator.direction = Dir2::from_xy(dir.x, dir.y).unwrap_or(Dir2::X);
+            animator.direction = Dir2::from_xy(dir.x, dir.y).unwrap_or(animator.direction);
             animator.animation_index = AnimationIndex::Walking;
         } else {
-            animator.animation_index = AnimationIndex::Idle;
+            animator.set_animation_index(AnimationIndex::Idle);
         }
     }
 }
@@ -236,7 +238,7 @@ fn textbox(asset_server: &AssetServer) -> impl Bundle + use<> {
                 align_items: AlignItems::Start,
                 ..default()
             },
-            BorderColor(Color::srgb(0.6, 0.7, 0.8)),
+            BorderColor::all(Color::srgb(0.6, 0.7, 0.8)),
             // BorderRadius::MAX,
             BackgroundColor(Color::WHITE.darker(0.1)),
             children![(
